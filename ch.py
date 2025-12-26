@@ -5,7 +5,6 @@ import plotly.express as px
 
 def get_dataframe_from_excel():
     # 读取Excel文件数据（建议使用完整路径避免找不到文件）
-    # 若文件和脚本同目录，保持原文件名；否则替换为实际路径，例如：r"D:\your_path\supermarket_sales.xlsx"
     df = pd.read_excel(
         "supermarket_sales.xlsx",  # 若找不到文件，替换为完整路径
         sheet_name='销售数据',
@@ -52,30 +51,49 @@ def add_sidebar_func(df):
         return df_selection
 
 def product_line_chart(df):
-    # 按产品类型分组计算总价（修复sort_values参数错误：Series无需by参数）
+    # 按产品类型分组计算总价
     sales_by_product_line = (
-        df.groupby(by=["产品类型"])["总价"].sum().sort_values()  # 移除了无效的by="总价"参数
+        df.groupby(by=["产品类型"])["总价"].sum().reset_index()
     )
-    # 生成横向条形图
-    fig_product_sales = px.bar(
+    # 产品类型销售额饼图
+    fig_product_sales = px.pie(
         sales_by_product_line,
-        x="总价",
-        y=sales_by_product_line.index,
-        orientation="h",
-        title="<b>按产品类型划分的销售额</b>"
+        values="总价",
+        names="产品类型",
+        title="<b>各产品类型销售额占比</b>",
+        hole=0.2,
+        color_discrete_sequence=px.colors.qualitative.Set3
+    )
+    fig_product_sales.update_layout(
+        legend_title="产品类型",
+        legend=dict(orientation="v", yanchor="top", y=0.99, xanchor="left", x=1.05)
+    )
+    fig_product_sales.update_traces(
+        textposition="inside",
+        textinfo="percent+label"
     )
     return fig_product_sales
 
 def hour_chart(df):
     # 按小时数分组计算总价
-    sales_by_hour = df.groupby(by=["小时数"])["总价"].sum()
-    # 生成条形图
-    fig_hour_sales = px.bar(
+    sales_by_hour = df.groupby(by=["小时数"])["总价"].sum().reset_index()
+    # 小时销售额折线图（修复line_shape参数：将smooth改为spline）
+    fig_hour_sales = px.line(
         sales_by_hour,
-        x=sales_by_hour.index,
+        x="小时数",
         y="总价",
-        title="<b>按小时数划分的销售额</b>"
+        title="<b>各小时销售额变化趋势</b>",
+        markers=True,
+        line_shape="spline",  # 修正为正确的参数值
+        color_discrete_sequence=["#2E86AB"]
     )
+    fig_hour_sales.update_layout(
+        xaxis_title="交易小时数",
+        yaxis_title="销售额",
+        xaxis=dict(tickmode="linear"),
+        plot_bgcolor="rgba(0,0,0,0.01)"
+    )
+    fig_hour_sales.update_traces(line_width=3)
     return fig_hour_sales
 
 def main_page_demo(df):
